@@ -23,7 +23,7 @@ RSpec.describe Philiprehberger::DeepFreeze do
     end
 
     it 'excludes specified keys' do
-      data = { keep: 'mutable', freeze_me: 'frozen' }
+      data = { keep: String.new('mutable'), freeze_me: String.new('frozen') }
       result = described_class.deep_freeze(data, except: [:keep])
       expect(result[:keep]).not_to be_frozen
       expect(result[:freeze_me]).to be_frozen

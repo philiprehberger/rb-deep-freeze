@@ -15,6 +15,9 @@ Naming:
 Lint/DuplicateBranch:
   Enabled: false
 
+Lint/HashCompareByIdentity:
+  Enabled: false
+
 Layout/LineLength:
   Max: 120
 

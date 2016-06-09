@@ -1,10 +1,9 @@
 # philiprehberger-deep_freeze
 
-[![Tests](https://github.com/philiprehberger/rb-deep-freeze/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-deep-freeze/actions/workflows/ci.yml)
-[![Gem Version](https://badge.fury.io/rb/philiprehberger-deep_freeze.svg)](https://rubygems.org/gems/philiprehberger-deep_freeze)
-[![License](https://img.shields.io/github/license/philiprehberger/rb-deep-freeze)](LICENSE)
+[![Gem Version](https://badge.fury.io/rb/philiprehberger-deep_freeze.svg)](https://badge.fury.io/rb/philiprehberger-deep_freeze)
+[![CI](https://github.com/philiprehberger/rb-deep-freeze/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-deep-freeze/actions/workflows/ci.yml)
 
-Recursive deep freeze and deep dup for Ruby objects
+Recursive deep freeze and deep dup for Ruby objects. Handles Hashes, Arrays, Sets, Structs, and Strings with circular reference detection and selective key exclusion.
 
 ## Requirements
 
@@ -12,70 +11,63 @@ Recursive deep freeze and deep dup for Ruby objects
 
 ## Installation
 
-Add to your Gemfile:
-
-```ruby
-gem "philiprehberger-deep_freeze"
+```sh
+gem install philiprehberger-deep_freeze
 ```
 
-Or install directly:
+Or add to your Gemfile:
 
-```bash
-gem install philiprehberger-deep_freeze
+```ruby
+gem 'philiprehberger-deep_freeze'
 ```
 
 ## Usage
 
 ```ruby
-require "philiprehberger/deep_freeze"
+require 'philiprehberger/deep_freeze'
 
-data = { a: { b: "hello" }, list: ["x", "y"] }
-frozen = Philiprehberger::DeepFreeze.freeze(data)
-frozen[:a][:b].frozen?  # => true
-```
+# Deep freeze an object
+data = { users: [{ name: 'Alice', tags: ['admin'] }] }
+Philiprehberger::DeepFreeze.freeze(data)
+data[:users][0][:name].frozen? # => true
 
-### Selective Exclusion
+# Exclude certain keys from freezing
+config = { cache: [], settings: { debug: true } }
+Philiprehberger::DeepFreeze.freeze(config, except: [:cache])
+config[:cache].frozen?    # => false
+config[:settings].frozen? # => true
 
-```ruby
-data = { config: "mutable", payload: "frozen" }
-result = Philiprehberger::DeepFreeze.freeze(data, except: [:config])
-result[:config].frozen?   # => false
-result[:payload].frozen?  # => true
-```
+# Check if deeply frozen
+Philiprehberger::DeepFreeze.frozen?(data) # => true
 
-### Deep Frozen Check
-
-```ruby
-Philiprehberger::DeepFreeze.frozen?(frozen)  # => true
-
-shallow = { a: { b: "c" } }
-shallow.freeze
-Philiprehberger::DeepFreeze.frozen?(shallow)  # => false
-```
-
-### Deep Dup
-
-```ruby
-thawed = Philiprehberger::DeepFreeze.dup(frozen)
-thawed[:a][:b].frozen?  # => false
+# Deep dup to get an unfrozen copy
+copy = Philiprehberger::DeepFreeze.dup(data)
+copy.frozen?                       # => false
+copy[:users][0][:name].frozen?     # => false
 ```
 
 ## API
 
-| Method | Description |
-|--------|-------------|
-| `DeepFreeze.freeze(obj, except: [])` | Recursively freeze an object graph |
-| `DeepFreeze.frozen?(obj)` | Check if an object graph is deeply frozen |
-| `DeepFreeze.dup(obj)` | Create a deep unfrozen copy |
+### `DeepFreeze.freeze(obj, except: [])`
+
+Recursively freezes the given object and all nested objects. Supports Hash, Array, String, Set, and Struct. Tracks seen objects by `object_id` to handle circular references. Keys listed in `except:` are skipped.
+
+### `DeepFreeze.frozen?(obj)`
+
+Returns `true` if the object and all nested objects are frozen. Handles circular references.
+
+### `DeepFreeze.dup(obj)`
+
+Recursively duplicates the object to create a fully unfrozen deep copy. Handles circular references by tracking already-copied objects.
 
 ## Development
 
-```bash
+```sh
 bundle install
-bundle exec rspec      # Run tests
-bundle exec rubocop    # Check code style
+bundle exec rspec
+bundle exec rubocop
 ```
 
 ## License
 
-MIT
+MIT License. See [LICENSE](LICENSE) for details.

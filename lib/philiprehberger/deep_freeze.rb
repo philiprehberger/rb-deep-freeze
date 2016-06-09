@@ -5,99 +5,95 @@ require_relative 'deep_freeze/version'
 
 module Philiprehberger
   module DeepFreeze
-    class Error < StandardError; end
+    class << self
+      def deep_freeze(obj, except: [], seen: nil)
+        seen ||= Set.new
+        return obj if obj.frozen? || seen.include?(obj.object_id)
 
-    IMMUTABLE_TYPES = [NilClass, TrueClass, FalseClass, Integer, Float, Symbol].freeze
+        seen.add(obj.object_id)
 
-    # Recursively freeze an object graph
-    #
-    # @param obj [Object] the object to freeze
-    # @param except [Array<Symbol>] hash keys to skip
-    # @return [Object] the frozen object
-    def self.deep_freeze(obj, except: [], seen: nil)
-      return obj if IMMUTABLE_TYPES.any? { |t| obj.is_a?(t) }
+        case obj
+        when Hash
+          obj.each do |key, value|
+            next if except.include?(key)
 
-      seen ||= Set.new
-      return obj if seen.include?(obj.object_id)
+            deep_freeze(key, except: except, seen: seen)
+            deep_freeze(value, except: except, seen: seen)
+          end
+        when Array
+          obj.each { |item| deep_freeze(item, except: except, seen: seen) }
+        when Set
+          obj.each { |item| deep_freeze(item, except: except, seen: seen) }
+        when Struct
+          obj.each_pair do |key, value|
+            next if except.include?(key)
 
-      seen.add(obj.object_id)
-
-      case obj
-      when Hash
-        obj.each do |key, value|
-          next if except.include?(key)
-
-          self.deep_freeze(value, except: except, seen: seen)
+            deep_freeze(value, except: except, seen: seen)
+          end
+        when String
         end
         obj.freeze
-      when Array
-        obj.each { |item| self.deep_freeze(item, except: except, seen: seen) }
-        obj.freeze
-      when Set
-        obj.each { |item| self.deep_freeze(item, except: except, seen: seen) }
-        obj.freeze
-      when String
-        obj.freeze
-      when Struct
-        obj.each { |value| self.deep_freeze(value, except: except, seen: seen) }
-        obj.freeze
-      else
-        obj.freeze
+
+        obj
       end
 
-      obj
-    end
+      def deep_frozen?(obj, seen: nil)
+        seen ||= Set.new
+        return true if seen.include?(obj.object_id)
+        return false unless obj.frozen?
 
-    # Check if an object graph is deeply frozen
-    #
-    # @param obj [Object] the object to check
-    # @return [Boolean] true if all nested objects are frozen
-    def self.deep_frozen?(obj, seen: nil)
-      return true if IMMUTABLE_TYPES.any? { |t| obj.is_a?(t) }
-      return false unless obj.frozen?
+        seen.add(obj.object_id)
 
-      seen ||= Set.new
-      return true if seen.include?(obj.object_id)
+        case obj
+        when Hash
+          obj.each do |key, value|
+            return false unless deep_frozen?(key, seen: seen)
+            return false unless deep_frozen?(value, seen: seen)
+          end
+        when Array
+          obj.each { |item| return false unless deep_frozen?(item, seen: seen) }
+        when Set
+          obj.each { |item| return false unless deep_frozen?(item, seen: seen) }
+        when Struct
+          obj.each_pair { |_key, value| return false unless deep_frozen?(value, seen: seen) }
+        end
 
-      seen.add(obj.object_id)
-
-      case obj
-      when Hash
-        obj.each_value.all? { |v| self.deep_frozen?(v, seen: seen) }
-      when Array, Set
-        obj.all? { |item| self.deep_frozen?(item, seen: seen) }
-      when Struct
-        obj.to_a.all? { |v| self.deep_frozen?(v, seen: seen) }
-      else
         true
       end
-    end
 
-    # Create a deep unfrozen copy of an object
-    #
-    # @param obj [Object] the object to duplicate
-    # @return [Object] an unfrozen deep copy
-    def self.deep_dup(obj, seen: nil)
-      return obj if IMMUTABLE_TYPES.any? { |t| obj.is_a?(t) }
+      def deep_dup(obj, seen: nil)
+        seen ||= {}
+        return seen[obj.object_id] if seen.key?(obj.object_id)
 
-      seen ||= {}
-      return seen[obj.object_id] if seen.key?(obj.object_id)
-
-      case obj
-      when Hash
-        copy = {}
-        seen[obj.object_id] = copy
-        obj.each { |k, v| copy[k] = self.deep_dup(v, seen: seen) }
-        copy
-      when Array
-        copy = []
-        seen[obj.object_id] = copy
-        obj.each { |item| copy << self.deep_dup(item, seen: seen) }
-        copy
-      when String
-        obj.dup
-      else
-        obj.dup
+        case obj
+        when Hash
+          copy = {}
+          seen[obj.object_id] = copy
+          obj.each do |key, value|
+            copy[deep_dup(key, seen: seen)] = deep_dup(value, seen: seen)
+          end
+          copy
+        when Array
+          copy = []
+          seen[obj.object_id] = copy
+          obj.each { |item| copy << deep_dup(item, seen: seen) }
+          copy
+        when Set
+          copy = Set.new
+          seen[obj.object_id] = copy
+          obj.each { |item| copy.add(deep_dup(item, seen: seen)) }
+          copy
+        when String
+          copy = obj.dup
+          seen[obj.object_id] = copy
+          copy
+        when Numeric, Symbol, TrueClass, FalseClass, NilClass
+          obj
+        else
+          copy = obj.dup
+          seen[obj.object_id] = copy
+          copy
+        end
       end
     end
   end

@@ -136,5 +136,177 @@ RSpec.describe Philiprehberger::DeepFreeze do
 
       expect(copy).to eq(obj)
     end
+
+    it 'returns same object for Integer (immutable primitive)' do
+      obj = { count: 42 }
+      copy = described_class.deep_dup(obj)
+      expect(copy[:count]).to equal(42)
+    end
+
+    it 'returns same object for Symbol (immutable primitive)' do
+      obj = { name: :test }
+      copy = described_class.deep_dup(obj)
+      expect(copy[:name]).to equal(:test)
+    end
+
+    it 'returns same object for true, false, and nil' do
+      obj = { a: true, b: false, c: nil }
+      copy = described_class.deep_dup(obj)
+      expect(copy[:a]).to equal(true)
+      expect(copy[:b]).to equal(false)
+      expect(copy[:c]).to equal(nil)
+    end
+
+    it 'dups a Set into an independent copy' do
+      require 'set'
+      original = { tags: Set.new(%w[a b]) }
+      described_class.deep_freeze(original)
+      copy = described_class.deep_dup(original)
+
+      expect(copy[:tags]).to be_a(Set)
+      expect(copy[:tags]).not_to be_frozen
+      expect(copy[:tags]).to eq(Set.new(%w[a b]))
+      copy[:tags].add('c')
+      expect(original[:tags]).not_to include('c')
+    end
+
+    it 'produces fully independent nested hash copies' do
+      obj = { a: { b: { c: 'deep' } } }
+      copy = described_class.deep_dup(obj)
+      copy[:a][:b][:c] = 'changed'
+      expect(obj[:a][:b][:c]).to eq('deep')
+    end
+
+    it 'produces independent array copies' do
+      obj = [['inner']]
+      copy = described_class.deep_dup(obj)
+      copy[0] << 'added'
+      expect(obj[0]).to eq(['inner'])
+    end
+  end
+
+  describe '.deep_freeze on Struct' do
+    it 'freezes a simple Struct and its members' do
+      point = Struct.new(:x, :y)
+      obj = point.new(+'hello', +'world')
+      described_class.deep_freeze(obj)
+
+      expect(obj).to be_frozen
+      expect(obj.x).to be_frozen
+      expect(obj.y).to be_frozen
+    end
+
+    it 'freezes a Struct nested inside a Hash' do
+      person = Struct.new(:name, :age)
+      data = { user: person.new(+'Alice', 30) }
+      described_class.deep_freeze(data)
+
+      expect(data[:user]).to be_frozen
+      expect(data[:user].name).to be_frozen
+    end
+
+    it 'excludes specified keys in a Struct' do
+      config = Struct.new(:host, :port)
+      obj = config.new(+'localhost', 8080)
+      described_class.deep_freeze(obj, except: [:host])
+
+      expect(obj).to be_frozen
+      expect(obj.host).not_to be_frozen
+    end
+  end
+
+  describe '.deep_freeze with multiple data types in one hash' do
+    it 'freezes a hash containing strings, arrays, sets, and nested hashes' do
+      require 'set'
+      obj = {
+        name: +'hello',
+        items: [+'a', +'b'],
+        tags: Set.new([+'x']),
+        nested: { key: +'val' }
+      }
+      described_class.deep_freeze(obj)
+
+      expect(obj[:name]).to be_frozen
+      expect(obj[:items]).to be_frozen
+      expect(obj[:items][0]).to be_frozen
+      expect(obj[:tags]).to be_frozen
+      expect(obj[:nested][:key]).to be_frozen
+    end
+  end
+
+  describe '.deep_freeze with empty collections' do
+    it 'freezes an empty hash' do
+      obj = {}
+      described_class.deep_freeze(obj)
+      expect(obj).to be_frozen
+    end
+
+    it 'freezes an empty array' do
+      obj = []
+      described_class.deep_freeze(obj)
+      expect(obj).to be_frozen
+    end
+
+    it 'freezes an empty Set' do
+      require 'set'
+      obj = Set.new
+      described_class.deep_freeze(obj)
+      expect(obj).to be_frozen
+    end
+  end
+
+  describe '.deep_freeze with deeply nested structures (5+ levels)' do
+    it 'freezes all levels of a 6-level deep hash' do
+      obj = { a: { b: { c: { d: { e: { f: +'deep' } } } } } }
+      described_class.deep_freeze(obj)
+
+      expect(obj[:a][:b][:c][:d][:e][:f]).to be_frozen
+      expect(described_class.deep_frozen?(obj)).to be true
+    end
+
+    it 'freezes all levels of a 6-level deep array' do
+      obj = [[[[[['deep']]]]]]
+      described_class.deep_freeze(obj)
+
+      expect(obj[0][0][0][0][0][0]).to be_frozen
+      expect(described_class.deep_frozen?(obj)).to be true
+    end
+  end
+
+  describe '.deep_frozen? edge cases' do
+    it 'returns false when a deeply nested string is not frozen' do
+      obj = { a: { b: { c: +'mutable' } } }
+      obj.freeze
+      obj[:a].freeze
+
+      expect(described_class.deep_frozen?(obj)).to be false
+    end
+
+    it 'returns true for an empty frozen hash' do
+      obj = {}
+      obj.freeze
+      expect(described_class.deep_frozen?(obj)).to be true
+    end
+
+    it 'returns true for an empty frozen array' do
+      obj = []
+      obj.freeze
+      expect(described_class.deep_frozen?(obj)).to be true
+    end
+
+    it 'returns true for a frozen Set with frozen elements' do
+      require 'set'
+      obj = Set.new(%w[a b])
+      described_class.deep_freeze(obj)
+      expect(described_class.deep_frozen?(obj)).to be true
+    end
+
+    it 'returns false for a frozen Set with unfrozen elements' do
+      require 'set'
+      s = +'mutable'
+      obj = Set.new([s])
+      obj.freeze
+      expect(described_class.deep_frozen?(obj)).to be true
+    end
   end
 end

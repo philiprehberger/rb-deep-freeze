@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.authors = ['philiprehberger']
   spec.email = ['philiprehberger@users.noreply.github.com']
 
-  spec.summary = 'Recursive deep freeze and deep dup for Ruby objects'
+  spec.summary = 'Recursive deep freeze and deep dup with circular reference detection and key exclusion'
   spec.description = 'Recursively freeze entire object graphs (hashes, arrays, strings, structs) ' \
                      'to create truly immutable data structures. Handles circular references ' \
                      'and supports selective exclusion.'

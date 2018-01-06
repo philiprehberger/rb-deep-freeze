@@ -4,7 +4,7 @@
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-deep_freeze.svg)](https://rubygems.org/gems/philiprehberger-deep_freeze)
 [![License](https://img.shields.io/github/license/philiprehberger/rb-deep-freeze)](LICENSE)
 
-Recursive deep freeze and deep dup for Ruby objects. Handles Hashes, Arrays, Sets, Structs, and Strings with circular reference detection and selective key exclusion.
+Recursive deep freeze and deep dup with circular reference detection and key exclusion
 
 ## Requirements
 
@@ -12,14 +12,16 @@ Recursive deep freeze and deep dup for Ruby objects. Handles Hashes, Arrays, Set
 
 ## Installation
 
-```sh
-gem install philiprehberger-deep_freeze
-```
-
-Or add to your Gemfile:
+Add to your Gemfile:
 
 ```ruby
 gem 'philiprehberger-deep_freeze'
+```
+
+Or install directly:
+
+```bash
+gem install philiprehberger-deep_freeze
 ```
 
 ## Usage
@@ -63,7 +65,7 @@ Recursively duplicates the object to create a fully unfrozen deep copy. Handles 
 
 ## Development
 
-```sh
+```bash
 bundle install
 bundle exec rspec
 bundle exec rubocop
@@ -71,4 +73,4 @@ bundle exec rubocop
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+MIT

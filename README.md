@@ -15,7 +15,7 @@ Recursive deep freeze and deep dup with circular reference detection and key exc
 Add to your Gemfile:
 
 ```ruby
-gem 'philiprehberger-deep_freeze'
+gem "philiprehberger-deep_freeze"
 ```
 
 Or install directly:
@@ -51,17 +51,11 @@ copy[:users][0][:name].frozen?     # => false
 
 ## API
 
-### `DeepFreeze.freeze(obj, except: [])`
-
-Recursively freezes the given object and all nested objects. Supports Hash, Array, String, Set, and Struct. Tracks seen objects by `object_id` to handle circular references. Keys listed in `except:` are skipped.
-
-### `DeepFreeze.frozen?(obj)`
-
-Returns `true` if the object and all nested objects are frozen. Handles circular references.
-
-### `DeepFreeze.dup(obj)`
-
-Recursively duplicates the object to create a fully unfrozen deep copy. Handles circular references by tracking already-copied objects.
+| Method | Description |
+|--------|-------------|
+| `DeepFreeze.freeze(obj, except: [])` | Recursively freeze an object and all nested objects; skips keys in `except` |
+| `DeepFreeze.frozen?(obj)` | Return `true` if the object and all nested objects are frozen |
+| `DeepFreeze.dup(obj)` | Recursively duplicate an object to create a fully unfrozen deep copy |
 
 ## Development
 

@@ -27,7 +27,7 @@ gem install philiprehberger-deep_freeze
 ## Usage
 
 ```ruby
-require 'philiprehberger/deep_freeze'
+require "philiprehberger/deep_freeze"
 
 # Deep freeze an object
 data = { users: [{ name: 'Alice', tags: ['admin'] }] }

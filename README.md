@@ -29,24 +29,47 @@ gem install philiprehberger-deep_freeze
 ```ruby
 require "philiprehberger/deep_freeze"
 
-# Deep freeze an object
-data = { users: [{ name: 'Alice', tags: ['admin'] }] }
+data = { users: [{ name: "Alice", tags: ["admin"] }] }
 Philiprehberger::DeepFreeze.freeze(data)
 data[:users][0][:name].frozen? # => true
+```
 
-# Exclude certain keys from freezing
+### Key Exclusion
+
+Skip specific hash keys from being frozen with the `except:` option:
+
+```ruby
 config = { cache: [], settings: { debug: true } }
 Philiprehberger::DeepFreeze.freeze(config, except: [:cache])
 config[:cache].frozen?    # => false
 config[:settings].frozen? # => true
+```
 
-# Check if deeply frozen
+### Checking Frozen State
+
+Verify that an object and all of its nested children are frozen:
+
+```ruby
+data = { users: [{ name: "Alice" }] }
+Philiprehberger::DeepFreeze.freeze(data)
 Philiprehberger::DeepFreeze.frozen?(data) # => true
 
-# Deep dup to get an unfrozen copy
-copy = Philiprehberger::DeepFreeze.dup(data)
-copy.frozen?                       # => false
-copy[:users][0][:name].frozen?     # => false
+partial = { list: ["a", "b"] }
+partial.freeze
+Philiprehberger::DeepFreeze.frozen?(partial) # => false (nested strings are not frozen)
+```
+
+### Deep Dup
+
+Create a fully unfrozen deep copy of a frozen object:
+
+```ruby
+original = { users: [{ name: "Alice" }] }
+Philiprehberger::DeepFreeze.freeze(original)
+
+copy = Philiprehberger::DeepFreeze.dup(original)
+copy.frozen?                   # => false
+copy[:users][0][:name].frozen? # => false
 ```
 
 ## API

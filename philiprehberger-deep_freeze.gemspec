@@ -12,14 +12,14 @@ Gem::Specification.new do |spec|
   spec.description = 'Recursively freeze entire object graphs (hashes, arrays, strings, structs) ' \
                      'to create truly immutable data structures. Handles circular references ' \
                      'and supports selective exclusion.'
-  spec.homepage = 'https://github.com/philiprehberger/rb-deep-freeze'
+  spec.homepage      = 'https://philiprehberger.com/open-source-packages/ruby/philiprehberger-deep_freeze'
   spec.license = 'MIT'
   spec.required_ruby_version = '>= 3.1'
 
   spec.metadata['homepage_uri'] = spec.homepage
-  spec.metadata['source_code_uri'] = spec.homepage
-  spec.metadata['changelog_uri'] = "#{spec.homepage}/blob/main/CHANGELOG.md"
-  spec.metadata['bug_tracker_uri'] = "#{spec.homepage}/issues"
+  spec.metadata['source_code_uri']       = 'https://github.com/philiprehberger/rb-deep-freeze'
+  spec.metadata['changelog_uri']         = 'https://github.com/philiprehberger/rb-deep-freeze/blob/main/CHANGELOG.md'
+  spec.metadata['bug_tracker_uri']       = 'https://github.com/philiprehberger/rb-deep-freeze/issues'
   spec.metadata['rubygems_mfa_required'] = 'true'
 
   spec.files = Dir['lib/**/*.rb', 'LICENSE', 'README.md', 'CHANGELOG.md']

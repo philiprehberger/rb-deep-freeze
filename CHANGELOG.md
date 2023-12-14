@@ -7,6 +7,17 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-04
+
+### Added
+- Ruby 3.2+ Data class support in `deep_freeze`, `deep_frozen?`, and `deep_dup`
+- GitHub issue template gem version field
+- Feature request "Alternatives considered" field
+
+### Fixed
+- Gemspec author and email to match standard template
+- Gemspec `required_ruby_version` format consistency
+
 ## [0.1.11] - 2026-03-31
 
 ### Added

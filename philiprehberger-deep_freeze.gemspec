@@ -5,8 +5,8 @@ require_relative 'lib/philiprehberger/deep_freeze/version'
 Gem::Specification.new do |spec|
   spec.name = 'philiprehberger-deep_freeze'
   spec.version = Philiprehberger::DeepFreeze::VERSION
-  spec.authors = ['philiprehberger']
-  spec.email = ['philiprehberger@users.noreply.github.com']
+  spec.authors = ['Philip Rehberger']
+  spec.email = ['me@philiprehberger.com']
 
   spec.summary = 'Recursive deep freeze and deep dup with circular reference detection and key exclusion'
   spec.description = 'Recursively freeze entire object graphs (hashes, arrays, strings, structs) ' \
@@ -14,7 +14,7 @@ Gem::Specification.new do |spec|
                      'and supports selective exclusion.'
   spec.homepage = 'https://philiprehberger.com/open-source-packages/ruby/philiprehberger-deep_freeze'
   spec.license = 'MIT'
-  spec.required_ruby_version = '>= 3.1'
+  spec.required_ruby_version = '>= 3.1.0'
 
   spec.metadata['homepage_uri'] = spec.homepage
   spec.metadata['source_code_uri'] = 'https://github.com/philiprehberger/rb-deep-freeze'

@@ -7,6 +7,14 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-09
+
+### Added
+- `DeepFreeze.deep_diff(a, b)` returns a hash of path => `{ left:, right: }` pairs for every structural difference between two object graphs (Hash, Array, Struct, Data)
+
+### Fixed
+- Fix README to use correct method names (`deep_freeze`, `deep_frozen?`, `deep_dup`) instead of non-existent short aliases (`freeze`, `frozen?`, `dup`)
+
 ## [0.3.0] - 2026-04-09
 
 ### Added
@@ -90,4 +98,17 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Circular reference detection to prevent infinite loops
 - `except:` option to skip specified keys during freezing
 
+[0.4.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.4.0
+[0.3.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.3.0
+[0.2.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.2.0
+[0.1.11]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.1.11
+[0.1.10]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.1.10
+[0.1.9]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.1.9
+[0.1.8]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.1.8
+[0.1.7]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.1.7
+[0.1.6]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.1.6
+[0.1.5]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.1.5
+[0.1.4]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.1.4
+[0.1.3]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.1.3
+[0.1.2]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.1.2
 [0.1.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.1.0

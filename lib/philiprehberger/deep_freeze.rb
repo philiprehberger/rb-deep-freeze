@@ -126,6 +126,26 @@ module Philiprehberger
       # @param a [Object] first object
       # @param b [Object] second object
       # @return [Boolean] true if the two graphs are structurally equal
+      def deep_diff(a, b, path: [])
+        return {} if a.equal?(b)
+
+        unless a.instance_of?(b.class)
+          return { path => { left: a, right: b } }
+        end
+
+        if defined?(Data) && a.is_a?(Data)
+          return diff_members(a, b, a.class.members, path)
+        end
+
+        case a
+        when Hash then diff_hashes(a, b, path)
+        when Array then diff_arrays(a, b, path)
+        when Struct then diff_members(a, b, a.members, path)
+        else
+          a == b ? {} : { path => { left: a, right: b } }
+        end
+      end
+
       def deep_equal?(a, b)
         return true if a.equal?(b)
         return false unless a.instance_of?(b.class)
@@ -152,6 +172,47 @@ module Philiprehberger
         else
           a == b
         end
+      end
+
+      private
+
+      def diff_hashes(a, b, path)
+        result = {}
+        (a.keys | b.keys).each do |key|
+          sub = path + [key]
+          if !a.key?(key)
+            result[sub] = { left: nil, right: b[key] }
+          elsif !b.key?(key)
+            result[sub] = { left: a[key], right: nil }
+          else
+            result.merge!(deep_diff(a[key], b[key], path: sub))
+          end
+        end
+        result
+      end
+
+      def diff_arrays(a, b, path)
+        result = {}
+        max = [a.size, b.size].max
+        max.times do |i|
+          sub = path + [i]
+          if i >= a.size
+            result[sub] = { left: nil, right: b[i] }
+          elsif i >= b.size
+            result[sub] = { left: a[i], right: nil }
+          else
+            result.merge!(deep_diff(a[i], b[i], path: sub))
+          end
+        end
+        result
+      end
+
+      def diff_members(a, b, members, path)
+        result = {}
+        members.each do |m|
+          result.merge!(deep_diff(a.send(m), b.send(m), path: path + [m]))
+        end
+        result
       end
     end
   end

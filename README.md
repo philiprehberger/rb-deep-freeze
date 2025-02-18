@@ -30,7 +30,7 @@ gem install philiprehberger-deep_freeze
 require "philiprehberger/deep_freeze"
 
 data = { users: [{ name: "Alice", tags: ["admin"] }] }
-Philiprehberger::DeepFreeze.freeze(data)
+Philiprehberger::DeepFreeze.deep_freeze(data)
 data[:users][0][:name].frozen? # => true
 ```
 
@@ -40,7 +40,7 @@ Skip specific hash keys from being frozen with the `except:` option:
 
 ```ruby
 config = { cache: [], settings: { debug: true } }
-Philiprehberger::DeepFreeze.freeze(config, except: [:cache])
+Philiprehberger::DeepFreeze.deep_freeze(config, except: [:cache])
 config[:cache].frozen?    # => false
 config[:settings].frozen? # => true
 ```
@@ -51,12 +51,12 @@ Verify that an object and all of its nested children are frozen:
 
 ```ruby
 data = { users: [{ name: "Alice" }] }
-Philiprehberger::DeepFreeze.freeze(data)
-Philiprehberger::DeepFreeze.frozen?(data) # => true
+Philiprehberger::DeepFreeze.deep_freeze(data)
+Philiprehberger::DeepFreeze.deep_frozen?(data) # => true
 
 partial = { list: ["a", "b"] }
 partial.freeze
-Philiprehberger::DeepFreeze.frozen?(partial) # => false (nested strings are not frozen)
+Philiprehberger::DeepFreeze.deep_frozen?(partial) # => false (nested strings are not frozen)
 ```
 
 ### Deep Dup
@@ -65,9 +65,9 @@ Create a fully unfrozen deep copy of a frozen object:
 
 ```ruby
 original = { users: [{ name: "Alice" }] }
-Philiprehberger::DeepFreeze.freeze(original)
+Philiprehberger::DeepFreeze.deep_freeze(original)
 
-copy = Philiprehberger::DeepFreeze.dup(original)
+copy = Philiprehberger::DeepFreeze.deep_dup(original)
 copy.frozen?                   # => false
 copy[:users][0][:name].frozen? # => false
 ```
@@ -97,14 +97,29 @@ copy = Philiprehberger::DeepFreeze.deep_dup(original)
 Philiprehberger::DeepFreeze.deep_equal?(original, copy) # => true
 ```
 
+### Structural Diff
+
+Find exactly where two object graphs differ:
+
+```ruby
+a = { users: [{ name: "Alice", age: 30 }] }
+b = { users: [{ name: "Bob", age: 30 }] }
+
+Philiprehberger::DeepFreeze.deep_diff(a, b)
+# => { [:users, 0, :name] => { left: "Alice", right: "Bob" } }
+```
+
+Returns `{}` when the objects are structurally equal.
+
 ## API
 
 | Method | Description |
 |--------|-------------|
-| `DeepFreeze.freeze(obj, except: [])` | Recursively freeze an object and all nested objects (Hash, Array, Set, Struct, Data); skips keys in `except` |
-| `DeepFreeze.frozen?(obj)` | Return `true` if the object and all nested objects (including Struct and Data members) are frozen |
-| `DeepFreeze.dup(obj)` | Recursively duplicate an object to create a fully unfrozen deep copy (supports Struct and Data) |
+| `DeepFreeze.deep_freeze(obj, except: [])` | Recursively freeze an object and all nested objects (Hash, Array, Set, Struct, Data); skips keys in `except` |
+| `DeepFreeze.deep_frozen?(obj)` | Return `true` if the object and all nested objects (including Struct and Data members) are frozen |
+| `DeepFreeze.deep_dup(obj)` | Recursively duplicate an object to create a fully unfrozen deep copy (supports Struct and Data) |
 | `DeepFreeze.deep_equal?(a, b)` | Structural equality across nested Hash, Array, Set, Struct, and Data — ignores frozen state |
+| `DeepFreeze.deep_diff(a, b)` | Return a hash of path => `{ left:, right: }` pairs for every structural difference |
 
 ## Development
 

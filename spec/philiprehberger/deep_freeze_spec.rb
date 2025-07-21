@@ -448,6 +448,161 @@ RSpec.describe Philiprehberger::DeepFreeze do
     end
   end
 
+  describe '.deep_freeze_all' do
+    it 'freezes multiple objects in one call' do
+      a = { name: +'Alice' }
+      b = { name: +'Bob' }
+      described_class.deep_freeze_all(a, b)
+
+      expect(a).to be_frozen
+      expect(a[:name]).to be_frozen
+      expect(b).to be_frozen
+      expect(b[:name]).to be_frozen
+    end
+
+    it 'detects shared circular references across objects' do
+      shared = { value: +'shared' }
+      a = { ref: shared }
+      b = { ref: shared }
+      shared[:back] = a
+
+      expect { described_class.deep_freeze_all(a, b) }.not_to raise_error
+      expect(a).to be_frozen
+      expect(b).to be_frozen
+      expect(shared).to be_frozen
+    end
+
+    it 'respects the except: option across all objects' do
+      a = { keep: +'mutable_a', freeze_me: +'frozen_a' }
+      b = { keep: +'mutable_b', freeze_me: +'frozen_b' }
+      described_class.deep_freeze_all(a, b, except: [:keep])
+
+      expect(a[:keep]).not_to be_frozen
+      expect(a[:freeze_me]).to be_frozen
+      expect(b[:keep]).not_to be_frozen
+      expect(b[:freeze_me]).to be_frozen
+    end
+
+    it 'returns the array of objects' do
+      a = { x: 1 }
+      b = { y: 2 }
+      result = described_class.deep_freeze_all(a, b)
+
+      expect(result).to eq([a, b])
+    end
+
+    it 'handles a single object' do
+      a = { name: +'Alice' }
+      described_class.deep_freeze_all(a)
+
+      expect(a).to be_frozen
+      expect(a[:name]).to be_frozen
+    end
+  end
+
+  describe '.deep_clone' do
+    it 'returns a frozen deep copy' do
+      original = { users: [{ name: +'Alice' }] }
+      clone = described_class.deep_clone(original)
+
+      expect(clone).to be_frozen
+      expect(clone[:users]).to be_frozen
+      expect(clone[:users][0][:name]).to be_frozen
+      expect(described_class.deep_frozen?(clone)).to be true
+    end
+
+    it 'does not modify the original object' do
+      original = { name: +'Alice' }
+      described_class.deep_clone(original)
+
+      expect(original).not_to be_frozen
+      expect(original[:name]).not_to be_frozen
+    end
+
+    it 'produces a structurally equal but independent copy' do
+      original = { a: [1, 2, 3], b: { c: +'hello' } }
+      clone = described_class.deep_clone(original)
+
+      expect(described_class.deep_equal?(original, clone)).to be true
+      expect(clone).not_to equal(original)
+    end
+
+    it 'handles circular references' do
+      a = { name: +'a' }
+      a[:self] = a
+      clone = described_class.deep_clone(a)
+
+      expect(clone).to be_frozen
+      expect(clone[:self]).to equal(clone)
+    end
+
+    it 'respects the except: option' do
+      original = { keep: +'mutable', data: +'frozen' }
+      clone = described_class.deep_clone(original, except: [:keep])
+
+      expect(clone[:keep]).not_to be_frozen
+      expect(clone[:data]).to be_frozen
+    end
+  end
+
+  describe '.freeze_hash_keys' do
+    it 'freezes non-string hash keys' do
+      key = [1, 2, 3]
+      obj = { key => 'value' }
+      described_class.freeze_hash_keys(obj)
+
+      expect(key).to be_frozen
+    end
+
+    it 'leaves hash values unfrozen' do
+      value = +'mutable_value'
+      obj = { 'key' => value }
+      described_class.freeze_hash_keys(obj)
+
+      expect(value).not_to be_frozen
+    end
+
+    it 'recursively freezes keys in nested hashes' do
+      inner_key = [:inner]
+      obj = { 'outer' => { inner_key => 'value' } }
+      described_class.freeze_hash_keys(obj)
+
+      expect(inner_key).to be_frozen
+    end
+
+    it 'freezes keys in hashes nested inside arrays' do
+      key = [:array_key]
+      obj = [{ key => 'value' }]
+      described_class.freeze_hash_keys(obj)
+
+      expect(key).to be_frozen
+    end
+
+    it 'leaves values in nested structures unfrozen' do
+      value = +'deep_value'
+      obj = { 'a' => [{ 'b' => value }] }
+      described_class.freeze_hash_keys(obj)
+
+      expect(value).not_to be_frozen
+    end
+
+    it 'handles circular references' do
+      a = {}
+      key = [:key]
+      a[key] = a
+
+      expect { described_class.freeze_hash_keys(a) }.not_to raise_error
+      expect(key).to be_frozen
+    end
+
+    it 'returns the original object' do
+      obj = { 'a' => 1 }
+      result = described_class.freeze_hash_keys(obj)
+
+      expect(result).to equal(obj)
+    end
+  end
+
   describe '.deep_diff' do
     it 'returns empty hash for identical objects' do
       a = { name: 'Alice', tags: [1, 2] }

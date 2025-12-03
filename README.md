@@ -123,6 +123,29 @@ schema.keys.first.frozen?  # => true
 schema["name"].frozen?      # => false (value stays mutable)
 ```
 
+### Deep Merge
+
+Deeply merge two hashes, recursing into nested hashes. When both values for a key are hashes, it recurses. Otherwise, the second hash's value wins (or a block resolves conflicts). Returns a new frozen hash:
+
+```ruby
+a = { db: { host: "localhost", port: 5432 }, debug: false }
+b = { db: { port: 3306, name: "app" }, debug: true }
+
+result = Philiprehberger::DeepFreeze.deep_merge(a, b)
+# => { db: { host: "localhost", port: 3306, name: "app" }, debug: true }
+result.frozen? # => true
+```
+
+With a block for conflict resolution:
+
+```ruby
+a = { score: 10, name: "Alice" }
+b = { score: 5, name: "Bob" }
+
+Philiprehberger::DeepFreeze.deep_merge(a, b) { |_key, old_val, new_val| old_val + new_val }
+# => { score: 15, name: "AliceBob" }
+```
+
 ### Structural Equality
 
 Compare two object graphs without caring about frozen state or object identity:
@@ -159,6 +182,7 @@ Returns `{}` when the objects are structurally equal.
 | `DeepFreeze.freeze_hash_keys(hash)` | Recursively freeze only hash keys, leaving values mutable |
 | `DeepFreeze.deep_frozen?(obj)` | Return `true` if the object and all nested objects (including Struct and Data members) are frozen |
 | `DeepFreeze.deep_dup(obj)` | Recursively duplicate an object to create a fully unfrozen deep copy (supports Struct and Data) |
+| `DeepFreeze.deep_merge(a, b, &block)` | Deeply merge two hashes, recursing into nested hashes; b wins conflicts (or block resolves); returns a new frozen hash |
 | `DeepFreeze.deep_equal?(a, b)` | Structural equality across nested Hash, Array, Set, Struct, and Data — ignores frozen state |
 | `DeepFreeze.deep_diff(a, b)` | Return a hash of path => `{ left:, right: }` pairs for every structural difference |
 

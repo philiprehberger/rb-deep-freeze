@@ -7,6 +7,11 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-15
+
+### Added
+- `DeepFreeze.deep_merge(a, b, &block)` to deeply merge two hashes, recursing into nested hashes; b's value wins on conflict (or the block resolves); returns a new frozen hash
+
 ## [0.5.0] - 2026-04-14
 
 ### Added
@@ -105,6 +110,7 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Circular reference detection to prevent infinite loops
 - `except:` option to skip specified keys during freezing
 
+[0.6.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.6.0
 [0.5.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.5.0
 [0.4.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.4.0
 [0.3.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.3.0

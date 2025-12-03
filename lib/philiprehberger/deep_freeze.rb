@@ -179,6 +179,29 @@ module Philiprehberger
         end
       end
 
+      def deep_merge(a, b, &block)
+        result = a.each_with_object({}) do |(key, a_val), merged|
+          if b.key?(key)
+            b_val = b[key]
+            merged[key] = if a_val.is_a?(Hash) && b_val.is_a?(Hash)
+                            deep_merge(a_val, b_val, &block)
+                          elsif block
+                            yield(key, a_val, b_val)
+                          else
+                            b_val
+                          end
+          else
+            merged[key] = a_val
+          end
+        end
+
+        b.each do |key, b_val|
+          result[key] = b_val unless result.key?(key)
+        end
+
+        deep_freeze(deep_dup(result))
+      end
+
       def deep_equal?(a, b)
         return true if a.equal?(b)
         return false unless a.instance_of?(b.class)

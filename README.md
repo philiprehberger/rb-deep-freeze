@@ -1,6 +1,7 @@
 # philiprehberger-deep_freeze
 
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-deep_freeze.svg)](https://badge.fury.io/rb/philiprehberger-deep_freeze)
+$badge_line
 [![CI](https://github.com/philiprehberger/rb-deep-freeze/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-deep-freeze/actions/workflows/ci.yml)
 
 Recursive deep freeze and deep dup for Ruby objects. Handles Hashes, Arrays, Sets, Structs, and Strings with circular reference detection and selective key exclusion.

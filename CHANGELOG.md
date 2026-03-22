@@ -7,6 +7,12 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-03-22
+
+### Changed
+
+- Expand test coverage to 30+ examples covering Struct freezing, empty collections, deeply nested structures, dup independence, Set duplication, and frozen primitive behavior
+
 ## [0.1.2] - 2026-03-22
 
 ### Fixed

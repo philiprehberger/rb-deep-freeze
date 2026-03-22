@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'spec_helper'
+
 RSpec.describe Philiprehberger::DeepFreeze do
   describe '.deep_freeze' do
     it 'freezes nested hashes' do

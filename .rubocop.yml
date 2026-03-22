@@ -3,37 +3,13 @@ AllCops:
   NewCops: enable
   SuggestExtensions: false
 
-Style/Documentation:
-  Enabled: false
-
-Style/FrozenStringLiteralComment:
-  EnforcedStyle: always
-
-Style/ExplicitBlockArgument:
-  Enabled: false
-
-Style/ArgumentsForwarding:
-  Enabled: false
-
-Style/FormatString:
-  Enabled: false
-
-Style/IfUnlessModifier:
+Style:
   Enabled: false
 
 Metrics:
   Enabled: false
 
-Naming/BinaryOperatorParameterName:
-  Enabled: false
-
-Naming/PredicateMethod:
-  Enabled: false
-
-Naming/MethodParameterName:
-  MinNameLength: 1
-
-Naming/BlockForwarding:
+Naming:
   Enabled: false
 
 Lint/DuplicateBranch:

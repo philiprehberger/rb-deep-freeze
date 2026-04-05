@@ -12,6 +12,14 @@ module Philiprehberger
 
         seen.add(obj.object_id)
 
+        if defined?(Data) && obj.is_a?(Data)
+          frozen_attrs = {}
+          obj.class.members.each do |member|
+            frozen_attrs[member] = deep_freeze(obj.send(member), except: except, seen: seen)
+          end
+          return obj.class.new(**frozen_attrs)
+        end
+
         case obj
         when Hash
           obj.each do |key, value|
@@ -44,6 +52,10 @@ module Philiprehberger
 
         seen.add(obj.object_id)
 
+        if defined?(Data) && obj.is_a?(Data)
+          return obj.class.members.all? { |m| deep_frozen?(obj.send(m), seen: seen) }
+        end
+
         case obj
         when Hash
           obj.each do |key, value|
@@ -64,6 +76,16 @@ module Philiprehberger
       def deep_dup(obj, seen: nil)
         seen ||= {}
         return seen[obj.object_id] if seen.key?(obj.object_id)
+
+        if defined?(Data) && obj.is_a?(Data)
+          duped_attrs = {}
+          obj.class.members.each do |member|
+            duped_attrs[member] = deep_dup(obj.send(member), seen: seen)
+          end
+          result = obj.class.new(**duped_attrs)
+          seen[obj.object_id] = result
+          return result
+        end
 
         case obj
         when Hash

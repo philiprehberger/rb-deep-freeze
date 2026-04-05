@@ -215,6 +215,61 @@ RSpec.describe Philiprehberger::DeepFreeze do
     end
   end
 
+  context 'with Data class (Ruby 3.2+)', if: defined?(Data) && Data.respond_to?(:define) do
+    let(:point_class) { Data.define(:x, :y) }
+    let(:labeled_class) { Data.define(:label, :point) }
+
+    describe '.deep_freeze' do
+      it 'deep freezes Data member values' do
+        str = 'hello'
+        point = point_class.new(x: str, y: 2)
+        result = described_class.deep_freeze(point)
+        expect(result.x).to be_frozen
+      end
+
+      it 'returns a new Data when members need freezing' do
+        point = point_class.new(x: 'hello', y: 2)
+        result = described_class.deep_freeze(point)
+        expect(result.x).to be_frozen
+      end
+
+      it 'handles nested Data objects' do
+        point = point_class.new(x: 1, y: 2)
+        labeled = labeled_class.new(label: 'origin', point: point)
+        result = described_class.deep_freeze(labeled)
+        expect(result.label).to be_frozen
+      end
+    end
+
+    describe '.deep_frozen?' do
+      it 'returns true for Data with frozen members' do
+        point = point_class.new(x: 1, y: 2)
+        expect(described_class.deep_frozen?(point)).to be true
+      end
+
+      it 'returns false for Data with unfrozen members' do
+        point = point_class.new(x: +'hello', y: 2)
+        expect(described_class.deep_frozen?(point)).to be false
+      end
+    end
+
+    describe '.deep_dup' do
+      it 'creates unfrozen copy of Data member values' do
+        point = described_class.deep_freeze(point_class.new(x: 'hello', y: 2))
+        duped = described_class.deep_dup(point)
+        expect(duped.x).not_to be_frozen
+      end
+
+      it 'returns independent copy' do
+        point = point_class.new(x: [1, 2, 3], y: 'test')
+        frozen_point = described_class.deep_freeze(point)
+        duped = described_class.deep_dup(frozen_point)
+        expect(duped.x).not_to be_frozen
+        expect(duped.x).to eq([1, 2, 3])
+      end
+    end
+  end
+
   describe '.deep_freeze with multiple data types in one hash' do
     it 'freezes a hash containing strings, arrays, sets, and nested hashes' do
       require 'set'

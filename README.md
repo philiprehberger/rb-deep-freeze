@@ -72,13 +72,26 @@ copy.frozen?                   # => false
 copy[:users][0][:name].frozen? # => false
 ```
 
+### Data Class Support (Ruby 3.2+)
+
+```ruby
+require "philiprehberger/deep_freeze"
+
+Point = Data.define(:x, :y)
+point = Point.new(x: "origin", y: [1, 2])
+
+frozen_point = Philiprehberger::DeepFreeze.deep_freeze(point)
+frozen_point.x.frozen?  # => true
+frozen_point.y.frozen?  # => true
+```
+
 ## API
 
 | Method | Description |
 |--------|-------------|
-| `DeepFreeze.freeze(obj, except: [])` | Recursively freeze an object and all nested objects; skips keys in `except` |
-| `DeepFreeze.frozen?(obj)` | Return `true` if the object and all nested objects are frozen |
-| `DeepFreeze.dup(obj)` | Recursively duplicate an object to create a fully unfrozen deep copy |
+| `DeepFreeze.freeze(obj, except: [])` | Recursively freeze an object and all nested objects (Hash, Array, Set, Struct, Data); skips keys in `except` |
+| `DeepFreeze.frozen?(obj)` | Return `true` if the object and all nested objects (including Struct and Data members) are frozen |
+| `DeepFreeze.dup(obj)` | Recursively duplicate an object to create a fully unfrozen deep copy (supports Struct and Data) |
 
 ## Development
 

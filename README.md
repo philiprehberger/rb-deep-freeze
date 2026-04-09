@@ -85,6 +85,18 @@ frozen_point.x.frozen?  # => true
 frozen_point.y.frozen?  # => true
 ```
 
+### Structural Equality
+
+Compare two object graphs without caring about frozen state or object identity:
+
+```ruby
+original = { users: [{ name: "Alice", tags: ["admin"] }] }
+Philiprehberger::DeepFreeze.deep_freeze(original)
+
+copy = Philiprehberger::DeepFreeze.deep_dup(original)
+Philiprehberger::DeepFreeze.deep_equal?(original, copy) # => true
+```
+
 ## API
 
 | Method | Description |
@@ -92,6 +104,7 @@ frozen_point.y.frozen?  # => true
 | `DeepFreeze.freeze(obj, except: [])` | Recursively freeze an object and all nested objects (Hash, Array, Set, Struct, Data); skips keys in `except` |
 | `DeepFreeze.frozen?(obj)` | Return `true` if the object and all nested objects (including Struct and Data members) are frozen |
 | `DeepFreeze.dup(obj)` | Recursively duplicate an object to create a fully unfrozen deep copy (supports Struct and Data) |
+| `DeepFreeze.deep_equal?(a, b)` | Structural equality across nested Hash, Array, Set, Struct, and Data — ignores frozen state |
 
 ## Development
 

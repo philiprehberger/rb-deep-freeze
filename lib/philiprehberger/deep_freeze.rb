@@ -117,6 +117,42 @@ module Philiprehberger
           copy
         end
       end
+
+      # Deep structural equality check that descends into nested Hash, Array,
+      # Set, Struct, and Data objects. Unlike `==`, this method compares
+      # structural content rather than frozen-state or object identity, making
+      # it safe to compare a deeply frozen graph against an unfrozen copy.
+      #
+      # @param a [Object] first object
+      # @param b [Object] second object
+      # @return [Boolean] true if the two graphs are structurally equal
+      def deep_equal?(a, b)
+        return true if a.equal?(b)
+        return false unless a.instance_of?(b.class)
+
+        if defined?(Data) && a.is_a?(Data)
+          return a.class.members.all? { |m| deep_equal?(a.send(m), b.send(m)) }
+        end
+
+        case a
+        when Hash
+          return false unless a.size == b.size
+
+          a.all? { |k, v| b.key?(k) && deep_equal?(v, b[k]) }
+        when Array
+          return false unless a.size == b.size
+
+          a.each_with_index.all? { |item, i| deep_equal?(item, b[i]) }
+        when Set
+          return false unless a.size == b.size
+
+          a.all? { |item| b.any? { |other| deep_equal?(item, other) } }
+        when Struct
+          a.each_pair.all? { |key, value| deep_equal?(value, b[key]) }
+        else
+          a == b
+        end
+      end
     end
   end
 end

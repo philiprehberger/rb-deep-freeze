@@ -7,6 +7,11 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-09
+
+### Added
+- `DeepFreeze.deep_equal?` for structural equality comparison across Hash, Array, Set, Struct, and Data graphs regardless of frozen state
+
 ## [0.2.0] - 2026-04-04
 
 ### Added

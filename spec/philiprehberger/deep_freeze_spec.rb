@@ -364,4 +364,87 @@ RSpec.describe Philiprehberger::DeepFreeze do
       expect(described_class.deep_frozen?(obj)).to be true
     end
   end
+
+  describe '.deep_equal?' do
+    it 'returns true for identical objects' do
+      obj = { a: 1 }
+      expect(described_class.deep_equal?(obj, obj)).to be true
+    end
+
+    it 'returns true for structurally equal nested hashes' do
+      a = { users: [{ name: 'Alice', tags: %w[admin user] }] }
+      b = { users: [{ name: 'Alice', tags: %w[admin user] }] }
+      expect(described_class.deep_equal?(a, b)).to be true
+    end
+
+    it 'returns false for structurally different hashes' do
+      a = { users: [{ name: 'Alice' }] }
+      b = { users: [{ name: 'Bob' }] }
+      expect(described_class.deep_equal?(a, b)).to be false
+    end
+
+    it 'ignores frozen state when comparing' do
+      original = { users: [{ name: 'Alice', tags: ['admin'] }] }
+      described_class.deep_freeze(original)
+      copy = described_class.deep_dup(original)
+
+      expect(original).to be_frozen
+      expect(copy).not_to be_frozen
+      expect(described_class.deep_equal?(original, copy)).to be true
+    end
+
+    it 'returns false when classes differ' do
+      expect(described_class.deep_equal?({ a: 1 }, [[:a, 1]])).to be false
+    end
+
+    it 'returns false when arrays differ in size' do
+      expect(described_class.deep_equal?([1, 2], [1, 2, 3])).to be false
+    end
+
+    it 'returns false when hashes differ in size' do
+      expect(described_class.deep_equal?({ a: 1 }, { a: 1, b: 2 })).to be false
+    end
+
+    it 'compares nested arrays element-wise in order' do
+      expect(described_class.deep_equal?([[1, 2], [3, 4]], [[1, 2], [3, 4]])).to be true
+      expect(described_class.deep_equal?([[1, 2], [3, 4]], [[3, 4], [1, 2]])).to be false
+    end
+
+    it 'compares Sets as unordered' do
+      a = Set.new([1, 2, 3])
+      b = Set.new([3, 2, 1])
+      expect(described_class.deep_equal?(a, b)).to be true
+    end
+
+    it 'returns false for Sets with different contents' do
+      expect(described_class.deep_equal?(Set.new([1, 2]), Set.new([1, 3]))).to be false
+    end
+
+    it 'compares Struct instances field-by-field' do
+      klass = Struct.new(:x, :y)
+      expect(described_class.deep_equal?(klass.new(1, 'hi'), klass.new(1, 'hi'))).to be true
+      expect(described_class.deep_equal?(klass.new(1, 'hi'), klass.new(1, 'bye'))).to be false
+    end
+
+    it 'handles deeply nested mixed structures' do
+      a = { list: [Set.new([1, 2]), { inner: 'x' }] }
+      b = { list: [Set.new([2, 1]), { inner: 'x' }] }
+      expect(described_class.deep_equal?(a, b)).to be true
+    end
+
+    it 'compares primitives with ==' do
+      expect(described_class.deep_equal?(1, 1)).to be true
+      expect(described_class.deep_equal?('a', 'a')).to be true
+      expect(described_class.deep_equal?(nil, nil)).to be true
+      expect(described_class.deep_equal?(1, 2)).to be false
+    end
+
+    if defined?(Data)
+      it 'compares Data class instances member-by-member' do
+        klass = Data.define(:a, :b)
+        expect(described_class.deep_equal?(klass.new(a: 1, b: [1, 2]), klass.new(a: 1, b: [1, 2]))).to be true
+        expect(described_class.deep_equal?(klass.new(a: 1, b: [1, 2]), klass.new(a: 1, b: [1, 3]))).to be false
+      end
+    end
+  end
 end

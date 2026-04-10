@@ -9,9 +9,9 @@ Gem::Specification.new do |spec|
   spec.email = ['me@philiprehberger.com']
 
   spec.summary = 'Recursive deep freeze and deep dup with circular reference detection and key exclusion'
-  spec.description = 'Recursively freeze entire object graphs (hashes, arrays, strings, structs) ' \
-                     'to create truly immutable data structures. Handles circular references ' \
-                     'and supports selective exclusion.'
+  spec.description = 'Recursively freeze entire object graphs (hashes, arrays, strings, structs, Data) ' \
+                     'to create truly immutable data structures. Includes deep_dup, deep_frozen?, ' \
+                     'deep_equal?, and deep_diff. Handles circular references and selective key exclusion.'
   spec.homepage = 'https://philiprehberger.com/open-source-packages/ruby/philiprehberger-deep_freeze'
   spec.license = 'MIT'
   spec.required_ruby_version = '>= 3.1.0'

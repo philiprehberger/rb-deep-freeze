@@ -447,4 +447,71 @@ RSpec.describe Philiprehberger::DeepFreeze do
       end
     end
   end
+
+  describe '.deep_diff' do
+    it 'returns empty hash for identical objects' do
+      a = { name: 'Alice', tags: [1, 2] }
+      expect(described_class.deep_diff(a, a.dup)).to eq({})
+    end
+
+    it 'reports leaf differences in hashes' do
+      a = { name: 'Alice', age: 30 }
+      b = { name: 'Bob', age: 30 }
+      diff = described_class.deep_diff(a, b)
+      expect(diff).to eq({ [:name] => { left: 'Alice', right: 'Bob' } })
+    end
+
+    it 'reports missing keys' do
+      a = { x: 1 }
+      b = { x: 1, y: 2 }
+      diff = described_class.deep_diff(a, b)
+      expect(diff).to eq({ [:y] => { left: nil, right: 2 } })
+    end
+
+    it 'reports extra keys' do
+      a = { x: 1, y: 2 }
+      b = { x: 1 }
+      diff = described_class.deep_diff(a, b)
+      expect(diff).to eq({ [:y] => { left: 2, right: nil } })
+    end
+
+    it 'reports array element differences' do
+      a = [1, 2, 3]
+      b = [1, 9, 3]
+      diff = described_class.deep_diff(a, b)
+      expect(diff).to eq({ [1] => { left: 2, right: 9 } })
+    end
+
+    it 'reports array length differences' do
+      a = [1, 2]
+      b = [1, 2, 3]
+      diff = described_class.deep_diff(a, b)
+      expect(diff).to eq({ [2] => { left: nil, right: 3 } })
+    end
+
+    it 'reports type mismatches' do
+      a = { x: 'string' }
+      b = { x: 42 }
+      diff = described_class.deep_diff(a, b)
+      expect(diff).to eq({ [:x] => { left: 'string', right: 42 } })
+    end
+
+    it 'descends into nested structures' do
+      a = { users: [{ name: 'Alice' }] }
+      b = { users: [{ name: 'Bob' }] }
+      diff = described_class.deep_diff(a, b)
+      expect(diff).to eq({ [:users, 0, :name] => { left: 'Alice', right: 'Bob' } })
+    end
+
+    it 'handles Struct members' do
+      klass = Struct.new(:a, :b)
+      diff = described_class.deep_diff(klass.new(1, 'x'), klass.new(1, 'y'))
+      expect(diff).to eq({ [:b] => { left: 'x', right: 'y' } })
+    end
+
+    it 'returns empty hash for equal Structs' do
+      klass = Struct.new(:a, :b)
+      expect(described_class.deep_diff(klass.new(1, 2), klass.new(1, 2))).to eq({})
+    end
+  end
 end

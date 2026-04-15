@@ -85,6 +85,44 @@ frozen_point.x.frozen?  # => true
 frozen_point.y.frozen?  # => true
 ```
 
+### Batch Freezing
+
+Freeze multiple objects at once, sharing a single visited-set for cross-object circular reference detection:
+
+```ruby
+config = { db: { host: "localhost" } }
+cache = { store: config[:db] }
+
+Philiprehberger::DeepFreeze.deep_freeze_all(config, cache)
+config.frozen? # => true
+cache.frozen?  # => true
+```
+
+### Deep Clone
+
+Create a deeply frozen copy of an object without modifying the original:
+
+```ruby
+original = { users: [{ name: "Alice" }] }
+clone = Philiprehberger::DeepFreeze.deep_clone(original)
+
+clone.frozen?                     # => true
+clone[:users][0][:name].frozen?   # => true
+original.frozen?                  # => false
+```
+
+### Keys-Only Freeze
+
+Recursively freeze only hash keys, leaving values mutable:
+
+```ruby
+schema = { "name" => "Alice", "tags" => ["admin"] }
+Philiprehberger::DeepFreeze.freeze_hash_keys(schema)
+
+schema.keys.first.frozen?  # => true
+schema["name"].frozen?      # => false (value stays mutable)
+```
+
 ### Structural Equality
 
 Compare two object graphs without caring about frozen state or object identity:
@@ -116,6 +154,9 @@ Returns `{}` when the objects are structurally equal.
 | Method | Description |
 |--------|-------------|
 | `DeepFreeze.deep_freeze(obj, except: [])` | Recursively freeze an object and all nested objects (Hash, Array, Set, Struct, Data); skips keys in `except` |
+| `DeepFreeze.deep_freeze_all(*objects, except: [])` | Freeze multiple objects sharing one visited-set for cross-object circular reference detection |
+| `DeepFreeze.deep_clone(obj, except: [])` | Deep dup + deep freeze in one pass — returns a frozen deep copy without modifying the original |
+| `DeepFreeze.freeze_hash_keys(hash)` | Recursively freeze only hash keys, leaving values mutable |
 | `DeepFreeze.deep_frozen?(obj)` | Return `true` if the object and all nested objects (including Struct and Data members) are frozen |
 | `DeepFreeze.deep_dup(obj)` | Recursively duplicate an object to create a fully unfrozen deep copy (supports Struct and Data) |
 | `DeepFreeze.deep_equal?(a, b)` | Structural equality across nested Hash, Array, Set, Struct, and Data — ignores frozen state |

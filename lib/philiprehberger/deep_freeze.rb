@@ -45,6 +45,39 @@ module Philiprehberger
         obj
       end
 
+      def deep_freeze_all(*objects, except: [])
+        seen = Set.new
+        objects.each { |obj| deep_freeze(obj, except: except, seen: seen) }
+        objects
+      end
+
+      def deep_clone(obj, except: [])
+        copy = deep_dup(obj)
+        deep_freeze(copy, except: except)
+        copy
+      end
+
+      def freeze_hash_keys(hash, seen: nil)
+        seen ||= Set.new
+        return hash if seen.include?(hash.object_id)
+
+        seen.add(hash.object_id)
+
+        case hash
+        when Hash
+          hash.each do |key, value|
+            deep_freeze_key(key, seen)
+            freeze_hash_keys(value, seen: seen)
+          end
+        when Array
+          hash.each { |item| freeze_hash_keys(item, seen: seen) }
+        when Set
+          hash.each { |item| freeze_hash_keys(item, seen: seen) }
+        end
+
+        hash
+      end
+
       def deep_frozen?(obj, seen: nil)
         seen ||= Set.new
         return true if seen.include?(obj.object_id)
@@ -175,6 +208,25 @@ module Philiprehberger
       end
 
       private
+
+      def deep_freeze_key(key, seen)
+        return key if key.frozen? || seen.include?(key.object_id)
+
+        seen.add(key.object_id)
+
+        case key
+        when Hash
+          key.each do |k, v|
+            deep_freeze_key(k, seen)
+            deep_freeze_key(v, seen)
+          end
+        when Array
+          key.each { |item| deep_freeze_key(item, seen) }
+        when Set
+          key.each { |item| deep_freeze_key(item, seen) }
+        end
+        key.freeze
+      end
 
       def diff_hashes(a, b, path)
         result = {}

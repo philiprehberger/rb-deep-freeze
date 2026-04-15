@@ -7,6 +7,13 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-14
+
+### Added
+- `DeepFreeze.deep_freeze_all(*objects, except: [])` to freeze multiple objects with a shared visited-set for cross-object circular reference detection
+- `DeepFreeze.deep_clone(obj)` to deep dup and deep freeze in one pass, returning a frozen deep copy
+- `DeepFreeze.freeze_hash_keys(hash)` to recursively freeze only hash keys, leaving values mutable
+
 ## [0.4.0] - 2026-04-09
 
 ### Added
@@ -98,6 +105,7 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Circular reference detection to prevent infinite loops
 - `except:` option to skip specified keys during freezing
 
+[0.5.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.5.0
 [0.4.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.4.0
 [0.3.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.3.0
 [0.2.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.2.0

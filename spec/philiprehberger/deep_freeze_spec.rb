@@ -603,6 +603,101 @@ RSpec.describe Philiprehberger::DeepFreeze do
     end
   end
 
+  describe '.deep_merge' do
+    it 'merges two flat hashes with b winning on conflict' do
+      a = { x: 1, y: 2 }
+      b = { y: 3, z: 4 }
+      result = described_class.deep_merge(a, b)
+
+      expect(result).to eq({ x: 1, y: 3, z: 4 })
+    end
+
+    it 'recursively merges nested hashes' do
+      a = { db: { host: 'localhost', port: 5432 } }
+      b = { db: { port: 3306, name: 'app' } }
+      result = described_class.deep_merge(a, b)
+
+      expect(result).to eq({ db: { host: 'localhost', port: 3306, name: 'app' } })
+    end
+
+    it 'deeply recurses into multiple levels of nesting' do
+      a = { a: { b: { c: 1, d: 2 }, e: 3 } }
+      b = { a: { b: { c: 10, f: 4 }, g: 5 } }
+      result = described_class.deep_merge(a, b)
+
+      expect(result).to eq({ a: { b: { c: 10, d: 2, f: 4 }, e: 3, g: 5 } })
+    end
+
+    it 'overwrites arrays from b (no array merge)' do
+      a = { tags: [1, 2] }
+      b = { tags: [3, 4, 5] }
+      result = described_class.deep_merge(a, b)
+
+      expect(result[:tags]).to eq([3, 4, 5])
+    end
+
+    it 'uses the block to resolve conflicts when given' do
+      a = { x: 1, y: 2 }
+      b = { y: 10, z: 4 }
+      result = described_class.deep_merge(a, b) { |_key, old_val, new_val| old_val + new_val }
+
+      expect(result).to eq({ x: 1, y: 12, z: 4 })
+    end
+
+    it 'does not invoke the block for nested hash merges' do
+      a = { nested: { a: 1 } }
+      b = { nested: { b: 2 } }
+      block_called_for = []
+      described_class.deep_merge(a, b) { |key, old_val, new_val| block_called_for << key; new_val }
+
+      expect(block_called_for).to be_empty
+      expect(result = described_class.deep_merge(a, b)).to eq({ nested: { a: 1, b: 2 } })
+    end
+
+    it 'returns a frozen result' do
+      a = { x: 1 }
+      b = { y: 2 }
+      result = described_class.deep_merge(a, b)
+
+      expect(result).to be_frozen
+      expect(described_class.deep_frozen?(result)).to be true
+    end
+
+    it 'deeply freezes nested values in the result' do
+      a = { db: { host: 'localhost' } }
+      b = { db: { port: 3306 } }
+      result = described_class.deep_merge(a, b)
+
+      expect(result[:db]).to be_frozen
+      expect(result[:db][:host]).to be_frozen
+    end
+
+    it 'does not modify the original hashes' do
+      a = { x: 1, nested: { a: 1 } }
+      b = { y: 2, nested: { b: 2 } }
+      described_class.deep_merge(a, b)
+
+      expect(a).to eq({ x: 1, nested: { a: 1 } })
+      expect(b).to eq({ y: 2, nested: { b: 2 } })
+      expect(a).not_to be_frozen
+      expect(b).not_to be_frozen
+    end
+
+    it 'handles empty hashes' do
+      expect(described_class.deep_merge({}, { a: 1 })).to eq({ a: 1 })
+      expect(described_class.deep_merge({ a: 1 }, {})).to eq({ a: 1 })
+      expect(described_class.deep_merge({}, {})).to eq({})
+    end
+
+    it 'handles one side having a hash and the other a non-hash for the same key' do
+      a = { x: { nested: 1 } }
+      b = { x: 'replaced' }
+      result = described_class.deep_merge(a, b)
+
+      expect(result[:x]).to eq('replaced')
+    end
+  end
+
   describe '.deep_diff' do
     it 'returns empty hash for identical objects' do
       a = { name: 'Alice', tags: [1, 2] }

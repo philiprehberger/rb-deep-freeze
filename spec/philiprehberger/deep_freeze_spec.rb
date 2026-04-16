@@ -648,10 +648,13 @@ RSpec.describe Philiprehberger::DeepFreeze do
       a = { nested: { a: 1 } }
       b = { nested: { b: 2 } }
       block_called_for = []
-      described_class.deep_merge(a, b) { |key, old_val, new_val| block_called_for << key; new_val }
+      described_class.deep_merge(a, b) do |key, _old_val, new_val|
+        block_called_for << key
+        new_val
+      end
 
       expect(block_called_for).to be_empty
-      expect(result = described_class.deep_merge(a, b)).to eq({ nested: { a: 1, b: 2 } })
+      expect(described_class.deep_merge(a, b)).to eq({ nested: { a: 1, b: 2 } })
     end
 
     it 'returns a frozen result' do

@@ -7,6 +7,16 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-04-23
+
+### Added
+- `DeepFreeze.deep_thaw(obj, except: [])` recursively unfreezes an object graph.
+- `except:` now also accepts Struct member names in `deep_freeze` and `deep_frozen?`.
+- YARD documentation on all public API methods.
+
+### Changed
+- `deep_dup` returns the original object for `Range` and `Regexp` values (both are immutable by design).
+
 ## [0.6.0] - 2026-04-15
 
 ### Added
@@ -110,6 +120,7 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Circular reference detection to prevent infinite loops
 - `except:` option to skip specified keys during freezing
 
+[0.7.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.7.0
 [0.6.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.6.0
 [0.5.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.5.0
 [0.4.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.4.0

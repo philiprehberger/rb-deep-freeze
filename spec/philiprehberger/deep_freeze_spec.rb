@@ -767,4 +767,171 @@ RSpec.describe Philiprehberger::DeepFreeze do
       expect(described_class.deep_diff(klass.new(1, 2), klass.new(1, 2))).to eq({})
     end
   end
+
+  describe '.deep_dup Range/Regexp handling' do
+    it 'returns the same object for a Range value' do
+      range = (1..10)
+      obj = { r: range }
+      copy = described_class.deep_dup(obj)
+      expect(copy[:r]).to equal(range)
+    end
+
+    it 'returns the same object for a Regexp value' do
+      pattern = /abc/i
+      obj = { r: pattern }
+      copy = described_class.deep_dup(obj)
+      expect(copy[:r]).to equal(pattern)
+    end
+
+    it 'returns the same object when a Range is passed at the top level' do
+      range = (0...100)
+      expect(described_class.deep_dup(range)).to equal(range)
+    end
+
+    it 'returns the same object when a Regexp is passed at the top level' do
+      pattern = /foo/
+      expect(described_class.deep_dup(pattern)).to equal(pattern)
+    end
+  end
+
+  describe '.deep_freeze with Struct except:' do
+    it 'leaves the specified Struct member unfrozen while freezing the rest' do
+      config = Struct.new(:host, :cache)
+      obj = config.new(+'localhost', +'mutable_cache')
+      described_class.deep_freeze(obj, except: [:cache])
+
+      expect(obj).to be_frozen
+      expect(obj.host).to be_frozen
+      expect(obj.cache).not_to be_frozen
+    end
+  end
+
+  describe '.deep_frozen? with except:' do
+    it 'returns true for a Struct when only non-except members are frozen' do
+      config = Struct.new(:host, :cache)
+      obj = config.new(+'localhost', +'mutable_cache')
+      described_class.deep_freeze(obj, except: [:cache])
+
+      expect(described_class.deep_frozen?(obj, except: [:cache])).to be true
+    end
+
+    it 'returns false for a Struct when a non-except member is unfrozen' do
+      config = Struct.new(:host, :cache)
+      obj = config.new(+'localhost', +'mutable_cache')
+      obj.freeze
+
+      expect(described_class.deep_frozen?(obj, except: [:cache])).to be false
+    end
+
+    it 'returns true for a Hash when only non-except keys are frozen' do
+      obj = { keep: +'mutable', data: +'frozen' }
+      described_class.deep_freeze(obj, except: [:keep])
+
+      expect(described_class.deep_frozen?(obj, except: [:keep])).to be true
+    end
+  end
+
+  describe '.deep_thaw' do
+    it 'returns an unfrozen copy of a frozen Hash graph' do
+      obj = { a: { b: 'hello', c: [1, 'world'] } }
+      described_class.deep_freeze(obj)
+      thawed = described_class.deep_thaw(obj)
+
+      expect(thawed).not_to be_frozen
+      expect(thawed[:a]).not_to be_frozen
+      expect(thawed[:a][:b]).not_to be_frozen
+      expect(thawed[:a][:c]).not_to be_frozen
+      expect(thawed[:a][:c][1]).not_to be_frozen
+      expect(thawed).to eq({ a: { b: 'hello', c: [1, 'world'] } })
+    end
+
+    it 'returns an unfrozen copy of a frozen nested Array' do
+      obj = [[1, 'a'], ['b']]
+      described_class.deep_freeze(obj)
+      thawed = described_class.deep_thaw(obj)
+
+      expect(thawed).not_to be_frozen
+      expect(thawed[0]).not_to be_frozen
+      expect(thawed[0][1]).not_to be_frozen
+      expect(thawed[1][0]).not_to be_frozen
+    end
+
+    it 'thaws a Struct and its members' do
+      klass = Struct.new(:a, :b)
+      obj = klass.new('hello', 'world')
+      described_class.deep_freeze(obj)
+      thawed = described_class.deep_thaw(obj)
+
+      expect(thawed).not_to be_frozen
+      expect(thawed.a).not_to be_frozen
+      expect(thawed.b).not_to be_frozen
+    end
+
+    it 'leaves specified Hash keys frozen with except:' do
+      obj = { locked: 'policy', open: 'data' }
+      described_class.deep_freeze(obj)
+      thawed = described_class.deep_thaw(obj, except: [:locked])
+
+      expect(thawed).not_to be_frozen
+      expect(thawed[:locked]).to be_frozen
+      expect(thawed[:open]).not_to be_frozen
+    end
+
+    it 'leaves specified Struct members frozen with except:' do
+      klass = Struct.new(:locked, :open)
+      obj = klass.new('policy', 'data')
+      described_class.deep_freeze(obj)
+      thawed = described_class.deep_thaw(obj, except: [:locked])
+
+      expect(thawed).not_to be_frozen
+      expect(thawed.locked).to be_frozen
+      expect(thawed.open).not_to be_frozen
+    end
+
+    it 'returns immutable primitives as-is' do
+      expect(described_class.deep_thaw(42)).to equal(42)
+      expect(described_class.deep_thaw(:sym)).to equal(:sym)
+      expect(described_class.deep_thaw(nil)).to equal(nil)
+      expect(described_class.deep_thaw(true)).to equal(true)
+      expect(described_class.deep_thaw(false)).to equal(false)
+      range = (1..5)
+      expect(described_class.deep_thaw(range)).to equal(range)
+      pattern = /re/
+      expect(described_class.deep_thaw(pattern)).to equal(pattern)
+    end
+
+    it 'is a no-op (shape-wise) for already-unfrozen objects' do
+      obj = { a: +'hello', b: [+'x'] }
+      thawed = described_class.deep_thaw(obj)
+
+      expect(thawed).not_to be_frozen
+      expect(thawed[:a]).not_to be_frozen
+      expect(thawed[:b]).not_to be_frozen
+      expect(thawed[:b][0]).not_to be_frozen
+      expect(thawed).to eq({ a: 'hello', b: ['x'] })
+    end
+
+    it 'handles circular references without infinite loop' do
+      a = { name: 'a' }
+      b = { name: 'b', ref: a }
+      a[:ref] = b
+      described_class.deep_freeze(a)
+
+      thawed = described_class.deep_thaw(a)
+      expect(thawed).not_to be_frozen
+      expect(thawed[:ref]).not_to be_frozen
+      expect(thawed[:ref][:ref]).to equal(thawed)
+    end
+
+    it 'thaws Sets' do
+      require 'set'
+      obj = { tags: Set.new(%w[a b c]) }
+      described_class.deep_freeze(obj)
+      thawed = described_class.deep_thaw(obj)
+
+      expect(thawed[:tags]).to be_a(Set)
+      expect(thawed[:tags]).not_to be_frozen
+      expect(thawed[:tags]).to eq(Set.new(%w[a b c]))
+    end
+  end
 end

@@ -6,6 +6,14 @@ require_relative 'deep_freeze/version'
 module Philiprehberger
   module DeepFreeze
     class << self
+      # Recursively freeze an object and all nested objects it references. Descends
+      # into Hash, Array, Set, Struct, and Data (Ruby 3.2+) graphs and freezes every
+      # reachable value. Safe against circular references via a visited-set.
+      #
+      # @param obj [Object] object graph to freeze in place
+      # @param except [Array<Symbol, Object>] Hash keys / Struct member names to leave unfrozen
+      # @param seen [Set, nil] internal visited-set for circular reference detection
+      # @return [Object] the same object (now frozen), or a new Data instance with frozen members
       def deep_freeze(obj, except: [], seen: nil)
         seen ||= Set.new
         return obj if obj.frozen? || seen.include?(obj.object_id)
@@ -45,18 +53,37 @@ module Philiprehberger
         obj
       end
 
+      # Freeze multiple object graphs with a shared visited-set so that
+      # references shared across the objects are detected as circular.
+      #
+      # @param objects [Array<Object>] the object graphs to freeze
+      # @param except [Array<Symbol, Object>] Hash keys / Struct member names to leave unfrozen
+      # @return [Array<Object>] the input objects (each now deeply frozen)
       def deep_freeze_all(*objects, except: [])
         seen = Set.new
         objects.each { |obj| deep_freeze(obj, except: except, seen: seen) }
         objects
       end
 
+      # Create a fully independent deep copy of the object, then deep-freeze it.
+      # The original is never mutated.
+      #
+      # @param obj [Object] the source object graph
+      # @param except [Array<Symbol, Object>] Hash keys / Struct member names to leave unfrozen in the copy
+      # @return [Object] a deeply frozen copy
       def deep_clone(obj, except: [])
         copy = deep_dup(obj)
         deep_freeze(copy, except: except)
         copy
       end
 
+      # Recursively freeze only the keys of every Hash reachable from the input,
+      # leaving the values mutable. Descends through Arrays and Sets to find
+      # nested Hashes.
+      #
+      # @param hash [Object] object graph whose Hash keys should be frozen
+      # @param seen [Set, nil] internal visited-set for circular reference detection
+      # @return [Object] the original object (with its Hash keys frozen in place)
       def freeze_hash_keys(hash, seen: nil)
         seen ||= Set.new
         return hash if seen.include?(hash.object_id)
@@ -78,7 +105,15 @@ module Philiprehberger
         hash
       end
 
-      def deep_frozen?(obj, seen: nil)
+      # Return whether the object and every nested value reachable from it is
+      # frozen. Descends into Hash, Array, Set, Struct, and Data graphs, and
+      # handles circular references via a visited-set.
+      #
+      # @param obj [Object] the object graph to check
+      # @param except [Array<Symbol, Object>] Hash keys / Struct member names to ignore when testing frozen state
+      # @param seen [Set, nil] internal visited-set for circular reference detection
+      # @return [Boolean] true if obj and all nested values (outside `except`) are frozen
+      def deep_frozen?(obj, except: [], seen: nil)
         seen ||= Set.new
         return true if seen.include?(obj.object_id)
         return false unless obj.frozen?
@@ -86,26 +121,40 @@ module Philiprehberger
         seen.add(obj.object_id)
 
         if defined?(Data) && obj.is_a?(Data)
-          return obj.class.members.all? { |m| deep_frozen?(obj.send(m), seen: seen) }
+          return obj.class.members.all? { |m| deep_frozen?(obj.send(m), except: except, seen: seen) }
         end
 
         case obj
         when Hash
           obj.each do |key, value|
-            return false unless deep_frozen?(key, seen: seen)
-            return false unless deep_frozen?(value, seen: seen)
+            next if except.include?(key)
+
+            return false unless deep_frozen?(key, except: except, seen: seen)
+            return false unless deep_frozen?(value, except: except, seen: seen)
           end
         when Array
-          obj.each { |item| return false unless deep_frozen?(item, seen: seen) }
+          obj.each { |item| return false unless deep_frozen?(item, except: except, seen: seen) }
         when Set
-          obj.each { |item| return false unless deep_frozen?(item, seen: seen) }
+          obj.each { |item| return false unless deep_frozen?(item, except: except, seen: seen) }
         when Struct
-          obj.each_pair { |_key, value| return false unless deep_frozen?(value, seen: seen) }
+          obj.each_pair do |key, value|
+            next if except.include?(key)
+
+            return false unless deep_frozen?(value, except: except, seen: seen)
+          end
         end
 
         true
       end
 
+      # Recursively duplicate an object graph, producing a fully independent,
+      # unfrozen copy. Descends into Hash, Array, Set, Struct, and Data. Returns
+      # the original value for immutable primitives (Integer, Symbol, nil, true,
+      # false, Range, Regexp) since duplicating them yields no benefit.
+      #
+      # @param obj [Object] the object graph to duplicate
+      # @param seen [Hash, nil] internal original-to-copy map for circular reference detection
+      # @return [Object] an independent unfrozen copy (or `obj` itself if immutable by design)
       def deep_dup(obj, seen: nil)
         seen ||= {}
         return seen[obj.object_id] if seen.key?(obj.object_id)
@@ -144,8 +193,91 @@ module Philiprehberger
           copy
         when Numeric, Symbol, TrueClass, FalseClass, NilClass
           obj
+        when Range, Regexp
+          obj
         else
           copy = obj.dup
+          seen[obj.object_id] = copy
+          copy
+        end
+      end
+
+      # Recursively unfreeze an object graph. Returns an unfrozen copy for
+      # frozen containers (produced via `dup`) and recurses into their children.
+      # Immutable primitives (Integer, Symbol, nil, true, false, Range, Regexp)
+      # are returned as-is.
+      #
+      # The `except:` option here has the *opposite* semantics of `deep_freeze`:
+      # values at the listed Hash keys / Struct member names are left frozen.
+      #
+      # @param obj [Object] the object graph to thaw
+      # @param except [Array<Symbol, Object>] Hash keys / Struct member names to leave frozen
+      # @param seen [Hash, nil] internal original-to-copy map for circular reference detection
+      # @return [Object] an unfrozen copy of the graph (or `obj` itself if already immutable)
+      def deep_thaw(obj, except: [], seen: nil)
+        seen ||= {}
+        return seen[obj.object_id] if seen.key?(obj.object_id)
+
+        case obj
+        when Numeric, Symbol, TrueClass, FalseClass, NilClass, Range, Regexp
+          return obj
+        end
+
+        if defined?(Data) && obj.is_a?(Data)
+          thawed_attrs = {}
+          obj.class.members.each do |member|
+            thawed_attrs[member] = deep_thaw(obj.send(member), except: except, seen: seen)
+          end
+          result = obj.class.new(**thawed_attrs)
+          seen[obj.object_id] = result
+          return result
+        end
+
+        case obj
+        when Hash
+          copy = obj.frozen? ? obj.dup : obj
+          seen[obj.object_id] = copy
+          entries = obj.to_a
+          copy.clear
+          entries.each do |key, value|
+            if except.include?(key)
+              copy[key] = value
+            else
+              copy[deep_thaw(key, except: except, seen: seen)] = deep_thaw(value, except: except, seen: seen)
+            end
+          end
+          copy
+        when Array
+          copy = obj.frozen? ? obj.dup : obj
+          seen[obj.object_id] = copy
+          obj.each_with_index do |item, i|
+            copy[i] = deep_thaw(item, except: except, seen: seen)
+          end
+          copy
+        when Set
+          copy = obj.frozen? ? obj.dup : obj
+          seen[obj.object_id] = copy
+          thawed_items = obj.map { |item| deep_thaw(item, except: except, seen: seen) }
+          copy.clear
+          thawed_items.each { |item| copy.add(item) }
+          copy
+        when Struct
+          copy = obj.frozen? ? obj.dup : obj
+          seen[obj.object_id] = copy
+          obj.each_pair do |key, value|
+            copy[key] = if except.include?(key)
+                          value
+                        else
+                          deep_thaw(value, except: except, seen: seen)
+                        end
+          end
+          copy
+        when String
+          copy = obj.frozen? ? obj.dup : obj
+          seen[obj.object_id] = copy
+          copy
+        else
+          copy = obj.frozen? ? obj.dup : obj
           seen[obj.object_id] = copy
           copy
         end
@@ -158,7 +290,8 @@ module Philiprehberger
       #
       # @param a [Object] first object
       # @param b [Object] second object
-      # @return [Boolean] true if the two graphs are structurally equal
+      # @param path [Array] internal path accumulator for diff keys
+      # @return [Hash] a hash mapping each differing path to `{ left:, right: }`; empty when the graphs are equal
       def deep_diff(a, b, path: [])
         return {} if a.equal?(b)
 
@@ -179,6 +312,16 @@ module Philiprehberger
         end
       end
 
+      # Deeply merge two hashes, recursing into nested hashes. When both values
+      # for a key are hashes, merges them recursively. Otherwise b's value wins
+      # (unless a block is given, which resolves conflicts). Returns a new
+      # deeply frozen hash.
+      #
+      # @param a [Hash] the base hash
+      # @param b [Hash] the overriding hash
+      # @yield [key, a_val, b_val] conflict resolver; only invoked for leaf conflicts
+      # @yieldreturn [Object] the merged value for `key`
+      # @return [Hash] a new frozen hash with `a` and `b` deeply merged
       def deep_merge(a, b, &block)
         result = a.each_with_object({}) do |(key, a_val), merged|
           if b.key?(key)
@@ -202,6 +345,12 @@ module Philiprehberger
         deep_freeze(deep_dup(result))
       end
 
+      # Structural equality across nested Hash, Array, Set, Struct, and Data
+      # graphs — ignores frozen state and object identity.
+      #
+      # @param a [Object] first object
+      # @param b [Object] second object
+      # @return [Boolean] true if the two graphs are structurally equal
       def deep_equal?(a, b)
         return true if a.equal?(b)
         return false unless a.instance_of?(b.class)

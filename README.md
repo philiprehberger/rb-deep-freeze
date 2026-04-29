@@ -193,6 +193,15 @@ Philiprehberger::DeepFreeze.deep_diff(a, b)
 
 Returns `{}` when the objects are structurally equal.
 
+### Deep Count
+
+Recursively count every node in an object graph (root, every container, every key, every value). Cycle-safe — already-visited nodes are not counted again:
+
+```ruby
+Philiprehberger::DeepFreeze.deep_count({ a: [1, 2, 3], b: { c: 4 } })
+# => 10
+```
+
 ## API
 
 | Method | Description |
@@ -207,6 +216,7 @@ Returns `{}` when the objects are structurally equal.
 | `DeepFreeze.deep_merge(a, b, &block)` | Deeply merge two hashes, recursing into nested hashes; b wins conflicts (or block resolves); returns a new frozen hash |
 | `DeepFreeze.deep_equal?(a, b)` | Structural equality across nested Hash, Array, Set, Struct, and Data — ignores frozen state |
 | `DeepFreeze.deep_diff(a, b)` | Return a hash of path => `{ left:, right: }` pairs for every structural difference |
+| `DeepFreeze.deep_count(obj)` | Count every node in the object graph (cycle-safe) |
 
 ### Struct `except:` example
 

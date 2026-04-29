@@ -934,4 +934,34 @@ RSpec.describe Philiprehberger::DeepFreeze do
       expect(thawed[:tags]).to eq(Set.new(%w[a b c]))
     end
   end
+
+  describe '.deep_count' do
+    it 'returns 1 for a scalar value' do
+      expect(described_class.deep_count(42)).to eq(1)
+    end
+
+    it 'returns 1 for an empty array' do
+      expect(described_class.deep_count([])).to eq(1)
+    end
+
+    it 'counts an array plus each leaf element' do
+      expect(described_class.deep_count([1, 2, 3])).to eq(4)
+    end
+
+    it 'counts a hash plus each key and value' do
+      expect(described_class.deep_count({ a: 1, b: 2 })).to eq(5)
+    end
+
+    it 'counts a nested hash containing an array and inner hash' do
+      # outer hash(1) + key :a(1) + array(1) + leaf 1(1) + inner hash(1) + key :b(1) + leaf 2(1) = 7
+      expect(described_class.deep_count({ a: [1, { b: 2 }] })).to eq(7)
+    end
+
+    it 'returns a finite small number for a self-referential array' do
+      a = []
+      a << a
+
+      expect(described_class.deep_count(a)).to eq(1)
+    end
+  end
 end

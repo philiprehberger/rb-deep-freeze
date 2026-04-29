@@ -312,6 +312,36 @@ module Philiprehberger
         end
       end
 
+      # Recursively count every node in an object graph, including the root.
+      # Hashes contribute 1 plus the count of every key and value; Arrays
+      # contribute 1 plus the count of every element; Struct and Data instances
+      # contribute 1 plus the count of every member value. All other values
+      # (scalars, nil, etc.) count as 1. Safe against circular references via a
+      # visited-set — already-visited nodes contribute 0.
+      #
+      # @param obj [Object] the object graph to count
+      # @param seen [Set, nil] internal visited-set for circular reference detection
+      # @return [Integer] the total number of nodes reachable from `obj`
+      def deep_count(obj, seen: nil)
+        seen ||= Set.new
+        return 0 unless seen.add?(obj.object_id)
+
+        if defined?(Data) && obj.is_a?(Data)
+          return 1 + obj.class.members.sum { |m| deep_count(obj.send(m), seen: seen) }
+        end
+
+        case obj
+        when Hash
+          1 + obj.sum { |k, v| deep_count(k, seen: seen) + deep_count(v, seen: seen) }
+        when Array
+          1 + obj.sum { |item| deep_count(item, seen: seen) }
+        when Struct
+          1 + obj.each_pair.sum { |_key, value| deep_count(value, seen: seen) }
+        else
+          1
+        end
+      end
+
       # Deeply merge two hashes, recursing into nested hashes. When both values
       # for a key are hashes, merges them recursively. Otherwise b's value wins
       # (unless a block is given, which resolves conflicts). Returns a new

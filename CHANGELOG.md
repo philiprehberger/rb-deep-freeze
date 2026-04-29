@@ -7,6 +7,11 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-04-29
+
+### Added
+- `DeepFreeze.deep_count(obj)` — count every node in an object graph (hashes, arrays, structs, leaves) with circular-reference safety
+
 ## [0.7.0] - 2026-04-23
 
 ### Added
@@ -120,6 +125,7 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Circular reference detection to prevent infinite loops
 - `except:` option to skip specified keys during freezing
 
+[0.8.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.8.0
 [0.7.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.7.0
 [0.6.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.6.0
 [0.5.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.5.0

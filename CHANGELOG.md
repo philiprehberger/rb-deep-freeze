@@ -7,6 +7,12 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-05-30
+
+### Added
+- `DeepFreeze.deep_transform_values(obj, &block)` — recursively map every leaf value (non-container) through `block`, preserving Hash/Array/Set/Struct/Data structure; cycle-safe; original graph is never mutated
+- Card image to README per readme-template guide
+
 ## [0.8.0] - 2026-04-29
 
 ### Added
@@ -125,6 +131,7 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Circular reference detection to prevent infinite loops
 - `except:` option to skip specified keys during freezing
 
+[0.9.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.9.0
 [0.8.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.8.0
 [0.7.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.7.0
 [0.6.0]: https://github.com/philiprehberger/rb-deep-freeze/releases/tag/v0.6.0

@@ -375,6 +375,61 @@ module Philiprehberger
         deep_freeze(deep_dup(result))
       end
 
+      # Recursively map every leaf value (non-container) in an object graph
+      # through `block`, returning a new graph with the same shape. Containers
+      # (Hash, Array, Set, Struct, Data) are recursed into; their structure
+      # (Hash keys, Array indices, Struct/Data member names) is preserved.
+      # The result is an unfrozen deep copy — callers can pipe it through
+      # {.deep_freeze} when immutability is required.
+      #
+      # Cycle-safe via a visited-map: a previously-seen node maps to its
+      # already-built copy. The block is never invoked on a container.
+      #
+      # @param obj [Object] the object graph to transform
+      # @param seen [Hash, nil] internal original-to-copy map for cycle safety
+      # @yield [value] block called once per non-container leaf
+      # @yieldreturn [Object] the transformed value
+      # @return [Object] a new graph with leaves transformed; original is unchanged
+      def deep_transform_values(obj, seen: nil, &block)
+        seen ||= {}
+        return seen[obj.object_id] if seen.key?(obj.object_id)
+
+        if defined?(Data) && obj.is_a?(Data)
+          attrs = {}
+          obj.class.members.each do |m|
+            attrs[m] = deep_transform_values(obj.send(m), seen: seen, &block)
+          end
+          result = obj.class.new(**attrs)
+          seen[obj.object_id] = result
+          return result
+        end
+
+        case obj
+        when Hash
+          copy = {}
+          seen[obj.object_id] = copy
+          obj.each { |k, v| copy[k] = deep_transform_values(v, seen: seen, &block) }
+          copy
+        when Array
+          copy = []
+          seen[obj.object_id] = copy
+          obj.each { |item| copy << deep_transform_values(item, seen: seen, &block) }
+          copy
+        when Set
+          copy = Set.new
+          seen[obj.object_id] = copy
+          obj.each { |item| copy.add(deep_transform_values(item, seen: seen, &block)) }
+          copy
+        when Struct
+          copy = obj.dup
+          seen[obj.object_id] = copy
+          obj.each_pair { |key, value| copy[key] = deep_transform_values(value, seen: seen, &block) }
+          copy
+        else
+          yield(obj)
+        end
+      end
+
       # Structural equality across nested Hash, Array, Set, Struct, and Data
       # graphs — ignores frozen state and object identity.
       #

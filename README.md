@@ -4,6 +4,8 @@
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-deep_freeze.svg)](https://rubygems.org/gems/philiprehberger-deep_freeze)
 [![Last updated](https://img.shields.io/github/last-commit/philiprehberger/rb-deep-freeze)](https://github.com/philiprehberger/rb-deep-freeze/commits/main)
 
+![philiprehberger-deep_freeze](https://raw.githubusercontent.com/philiprehberger/rb-deep-freeze/main/package-card.webp)
+
 Recursive deep freeze and deep dup with circular reference detection and key exclusion
 
 ## Requirements
@@ -202,6 +204,21 @@ Philiprehberger::DeepFreeze.deep_count({ a: [1, 2, 3], b: { c: 4 } })
 # => 10
 ```
 
+### Deep Transform Values
+
+Recursively map every leaf value (non-container) through a block, returning a new graph with the same shape. Containers (Hash, Array, Set, Struct, Data) are recursed into; their structure is preserved. The original is never mutated.
+
+```ruby
+config = { db: { host: "localhost", password: "s3cret" }, debug: true }
+
+redacted = Philiprehberger::DeepFreeze.deep_transform_values(config) do |value|
+  value.is_a?(String) && value.match?(/cret|key|token/i) ? "***" : value
+end
+# => { db: { host: "localhost", password: "***" }, debug: true }
+
+config[:db][:password] # => "s3cret" (original is unchanged)
+```
+
 ## API
 
 | Method | Description |
@@ -217,6 +234,7 @@ Philiprehberger::DeepFreeze.deep_count({ a: [1, 2, 3], b: { c: 4 } })
 | `DeepFreeze.deep_equal?(a, b)` | Structural equality across nested Hash, Array, Set, Struct, and Data — ignores frozen state |
 | `DeepFreeze.deep_diff(a, b)` | Return a hash of path => `{ left:, right: }` pairs for every structural difference |
 | `DeepFreeze.deep_count(obj)` | Count every node in the object graph (cycle-safe) |
+| `DeepFreeze.deep_transform_values(obj, &block)` | Recursively map every leaf value through `block`, preserving Hash/Array/Set/Struct/Data structure; cycle-safe |
 
 ### Struct `except:` example
 

@@ -964,4 +964,51 @@ RSpec.describe Philiprehberger::DeepFreeze do
       expect(described_class.deep_count(a)).to eq(1)
     end
   end
+
+  describe '.deep_transform_values' do
+    it 'transforms leaves in nested hashes preserving structure' do
+      obj = { a: 1, b: { c: 2, d: [3, 4] } }
+      result = described_class.deep_transform_values(obj) { |v| v * 10 }
+
+      expect(result).to eq({ a: 10, b: { c: 20, d: [30, 40] } })
+    end
+
+    it 'does not mutate the original' do
+      obj = { name: 'Alice', tags: %w[admin user] }
+      described_class.deep_transform_values(obj) { |v| v.is_a?(String) ? v.upcase : v }
+
+      expect(obj).to eq({ name: 'Alice', tags: %w[admin user] })
+    end
+
+    it 'preserves Set membership' do
+      obj = { ids: Set.new([1, 2, 3]) }
+      result = described_class.deep_transform_values(obj) { |v| v.is_a?(Integer) ? v * 10 : v }
+
+      expect(result[:ids]).to eq(Set.new([10, 20, 30]))
+    end
+
+    it 'preserves Struct member names' do
+      cfg = Struct.new(:host, :port).new('localhost', 5432)
+      result = described_class.deep_transform_values(cfg) { |v| v.is_a?(Integer) ? v + 1 : v }
+
+      expect(result.host).to eq('localhost')
+      expect(result.port).to eq(5433)
+    end
+
+    it 'preserves Data member names', if: defined?(Data) do
+      point_class = Data.define(:x, :y)
+      point = point_class.new(x: 1, y: 2)
+      result = described_class.deep_transform_values(point) { |v| v * 100 }
+
+      expect(result.x).to eq(100)
+      expect(result.y).to eq(200)
+    end
+
+    it 'handles self-referential arrays without infinite recursion' do
+      a = []
+      a << a
+
+      expect { described_class.deep_transform_values(a) { |v| v } }.not_to raise_error
+    end
+  end
 end
